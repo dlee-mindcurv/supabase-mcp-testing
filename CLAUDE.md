@@ -91,6 +91,44 @@ supabase status             # Show local service URLs/keys
 ./scripts/deploy.sh
 ```
 
+## Product Search Demo App
+
+Natural language product search UI in `product-search/`. Uses local Ollama + Supabase MCP to translate queries into SQL.
+
+### Architecture
+
+```
+UI (Next.js) → API route → Ollama (qwen3:8b) with MCP tools → Supabase MCP Server → Local Postgres
+```
+
+### Stack
+
+- **Next.js 16** (App Router) with Tailwind CSS
+- **Vercel AI SDK v6** (`ai`, `@ai-sdk/react`) — streaming chat + tool-use loop
+- **ai-sdk-ollama** — Ollama provider for AI SDK
+- **@ai-sdk/mcp** — bridges MCP tools into AI SDK format
+- **Ollama** at `http://localhost:11434` with `qwen3:8b`
+- **Supabase MCP** at `http://localhost:54321/mcp/sse`
+
+### Running the Demo
+
+```bash
+# Prerequisites: Docker running, Ollama running with qwen3:8b
+supabase start                          # From project root
+cd product-search && npm run dev        # http://localhost:3000
+```
+
+### Key Files
+
+- `product-search/src/app/api/chat/route.ts` — Core orchestration (MCP client + Ollama + streaming)
+- `product-search/src/app/page.tsx` — Chat UI with useChat hook
+- `product-search/src/lib/system-prompt.ts` — Schema context for the LLM
+- `product-search/.env.local` — MCP URL + Ollama config
+
+### Swapping Models
+
+Change `OLLAMA_MODEL` in `.env.local` or the default in `route.ts`. Alternatives: `qwen2.5:14b`, `llama3.1:8b`, `mistral:7b-instruct`.
+
 ## File Structure
 
 ```
@@ -101,6 +139,11 @@ supabase status             # Show local service URLs/keys
 │   ├── reset.sh          # Reset database with confirmation
 │   ├── link-remote.sh    # Link to remote Supabase project
 │   └── deploy.sh         # Deploy migrations to remote
+├── product-search/       # Next.js product search demo
+│   ├── src/app/          # App Router pages + API routes
+│   ├── src/lib/          # System prompt + utilities
+│   ├── .env.local        # Local config (MCP URL, Ollama)
+│   └── next.config.ts    # Server external packages config
 └── supabase/
     ├── config.toml       # Supabase local configuration
     ├── seed.sql          # Test data
