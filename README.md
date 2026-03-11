@@ -104,6 +104,50 @@ supabase status             # Show local service URLs/keys
 
 A Next.js app that lets you search products using natural language, powered by local Ollama and the Supabase MCP server.
 
+### Architecture
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Browser as Next.js Frontend<br/>(useChat)
+    participant API as Next.js API Route<br/>(route.ts)
+    participant MCP as Supabase MCP Server<br/>(localhost:54321/mcp)
+    participant LLM as Ollama / Qwen 3.5<br/>(localhost:11434)
+    participant DB as Postgres<br/>(localhost:54322)
+
+    User->>Browser: Types "products under $50"
+    Browser->>API: POST /api/chat (UIMessage[])
+
+    Note over API,MCP: 1. Discover available tools
+    API->>MCP: Connect (Streamable HTTP)
+    MCP-->>API: Tool list (execute_sql, list_tables, ...)
+
+    Note over API,LLM: 2. Send prompt + tools to LLM
+    API->>LLM: streamText(messages, tools, system prompt)
+
+    Note over LLM: LLM reads the schema from the<br/>system prompt and generates SQL
+
+    Note over API,DB: 3. AI SDK tool-use loop (automatic)
+    LLM-->>API: Tool call: execute_sql("SELECT ... WHERE price < 50")
+    API->>MCP: execute_sql(query)
+    MCP->>DB: Run SQL query
+    DB-->>MCP: Result rows
+    MCP-->>API: Tool result (JSON)
+    API->>LLM: Tool result → back to LLM
+
+    Note over LLM: LLM formats raw rows into<br/>a human-friendly response
+
+    LLM-->>API: Streamed text response
+    API-->>Browser: Stream (toUIMessageStreamResponse)
+    Browser-->>User: "Here are 5 products under $50..."
+```
+
+### Key Concepts
+
+- **Qwen (LLM) is the brain** -- it writes the SQL and formats the response. The system prompt gives it full schema context.
+- **Supabase MCP is the hands** -- it exposes database tools and executes queries. It does not do any AI/NL processing.
+- **Vercel AI SDK is the glue** -- it manages the tool-use loop automatically (steps 3-6 in the diagram above happen without manual bridging code).
+
 ### Prerequisites
 
 - [Ollama](https://ollama.ai/) with `qwen3:8b` model (`ollama pull qwen3:8b`)
