@@ -108,7 +108,7 @@ UI (Next.js) → API route → Ollama (qwen3:8b) with MCP tools → Supabase MCP
 - **ai-sdk-ollama** — Ollama provider for AI SDK
 - **@ai-sdk/mcp** — bridges MCP tools into AI SDK format
 - **Ollama** at `http://localhost:11434` with `qwen3:8b`
-- **Supabase MCP** at `http://localhost:54321/mcp/sse`
+- **Supabase MCP** at `http://localhost:54321/mcp`
 
 ### Running the Demo
 

@@ -1,4 +1,4 @@
-import { streamText, stepCountIs } from "ai";
+import { streamText, stepCountIs, convertToModelMessages } from "ai";
 import { ollama } from "ai-sdk-ollama";
 import { createMCPClient } from "@ai-sdk/mcp";
 import { SYSTEM_PROMPT } from "@/lib/system-prompt";
@@ -10,18 +10,19 @@ export async function POST(req: Request) {
 
   const mcpClient = await createMCPClient({
     transport: {
-      type: "sse",
+      type: "http",
       url: process.env.SUPABASE_MCP_URL!,
     },
   });
 
   try {
     const tools = await mcpClient.tools();
+    const modelMessages = await convertToModelMessages(messages);
 
     const result = streamText({
-      model: ollama(process.env.OLLAMA_MODEL || "qwen3:8b"),
+      model: ollama(process.env.OLLAMA_MODEL || "qwen3.5:9b"),
       system: SYSTEM_PROMPT,
-      messages,
+      messages: modelMessages,
       tools,
       stopWhen: stepCountIs(5),
       onFinish: async () => {
